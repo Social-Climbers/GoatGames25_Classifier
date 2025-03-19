@@ -1,81 +1,50 @@
 import 'package:flutter/material.dart';
-import 'package:goatgames2025classifier/crest.dart';
+import 'package:goatgames2025classifier/routeData%20copy.dart';
 import 'package:goatgames2025classifier/routeData.dart';
 
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
+class CrestScoreCardScreen extends StatefulWidget {
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'GG25 Classifier',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: MainScreen(),
-    );
-  }
+  _CrestScoreCardScreenState createState() => _CrestScoreCardScreenState();
 }
 
-class MainScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          backgroundColor: Colors.lightBlue[50],
-          title: Text('Goat Games 2025 Classifier'),
-          bottom: TabBar(
-            tabs: [
-              Tab(text: 'Score-based Model'),
-              Tab(text: 'Top 10 Based Model'),
-              //  Tab(text: 'Summit'),
-            ],
-          ),
-        ),
-        body: TabBarView(
-          children: [
-            ScoreCardScreen(),
-            CrestScoreCardScreen(),
-            SummitScreen(),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class ScoreCardScreen extends StatefulWidget {
-  @override
-  _ScoreCardScreenState createState() => _ScoreCardScreenState();
-}
-
-class _ScoreCardScreenState extends State<ScoreCardScreen> {
+class _CrestScoreCardScreenState extends State<CrestScoreCardScreen> {
   bool isFemale = false;
   bool disableWeight = false;
   String tier = "Unclassified";
   double totalScore = 0;
   double requiredScore = 0;
+  int topRoutesRange = 10;
   TextEditingController MinScoreTextController = TextEditingController();
+  TextEditingController TopRoutesRangeController = TextEditingController();
 
   void _calculateScore() {
     double totalScore = 0;
     bool completedAllSilverhorn = true;
     bool climbedAnyIbex = false;
 
-    // Reset the flags for all routes
-    for (var route in routes) {
+    // Reset the top 10 flag for all routes
+    for (var route in routesCrest16) {
       route["isTop10"] = false;
     }
 
     // Filter routes where Top is checked
-    var topRoutes = routes.where((route) => route["Top"] == true).toList();
+    var topRoutes =
+        routesCrest16.where((route) => route["Top"] == true).toList();
+
+    // Sort the routes by route number in descending order
+    topRoutes.sort((a, b) {
+      int aRouteNumber = int.parse(a["Route"].split(" ")[1]);
+      int bRouteNumber = int.parse(b["Route"].split(" ")[1]);
+      return bRouteNumber.compareTo(aRouteNumber);
+    });
+
+    // Take the top routes based on the specified range
+    topRoutes = topRoutes.take(topRoutesRange).toList();
+
+    // Mark the top routes
+    for (var route in topRoutes) {
+      route["isTop10"] = true;
+    }
 
     for (var route in topRoutes) {
       int routeNumber = int.parse(route["Route"].split(" ")[1]);
@@ -118,6 +87,7 @@ class _ScoreCardScreenState extends State<ScoreCardScreen> {
 
     requiredScore = isFemale == false ? 40800 : 34000;
     MinScoreTextController.text = requiredScore.toString();
+    TopRoutesRangeController.text = topRoutesRange.toString();
   }
 
   @override
@@ -161,6 +131,39 @@ class _ScoreCardScreenState extends State<ScoreCardScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        SizedBox(width: 10),
+                        Row(
+                          children: [
+                            Text('Score Range: '),
+                            SizedBox(
+                              width: 50,
+                              child: TextField(
+                                controller: TopRoutesRangeController,
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(
+                                      vertical: 5, horizontal: 10),
+                                ),
+                                onSubmitted: (value) {
+                                  setState(() {
+                                    topRoutesRange =
+                                        int.tryParse(value) ?? topRoutesRange;
+                                    _calculateScore();
+                                  });
+                                },
+                                onChanged: (value) {
+                                  setState(() {
+                                    topRoutesRange =
+                                        int.tryParse(value) ?? topRoutesRange;
+                                    _calculateScore();
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(width: 10),
                         Checkbox(
                           value: disableWeight,
                           onChanged: (bool? value) {
@@ -171,13 +174,14 @@ class _ScoreCardScreenState extends State<ScoreCardScreen> {
                           },
                         ),
                         Text("Disable Weight"),
-                        SizedBox(width: 20),
+                        SizedBox(width: 10),
                         ElevatedButton(
                           onPressed: () {
                             setState(() {
-                              for (var route in routes) {
+                              for (var route in routesCrest16) {
                                 route["Zone"] = false;
                                 route["Top"] = false;
+                                route["isTop10"] = false;
                               }
                               totalScore = 0;
                               tier = "Unclassified";
@@ -190,7 +194,7 @@ class _ScoreCardScreenState extends State<ScoreCardScreen> {
                   ],
                 ),
                 SingleChildScrollView(
-                  padding: EdgeInsets.only(bottom: 80),
+                  padding: EdgeInsets.only(bottom: 80, top: 20),
                   scrollDirection: Axis.horizontal,
                   child: DataTable(
                     columnSpacing: 15,
@@ -222,14 +226,27 @@ class _ScoreCardScreenState extends State<ScoreCardScreen> {
                       DataColumn(
                           label: Text("Total Pts",
                               style: TextStyle(fontWeight: FontWeight.bold))),
+                      DataColumn(
+                          label: Text("Top Routes",
+                              style: TextStyle(fontWeight: FontWeight.bold))),
                     ],
-                    rows: routes.map((route) {
+                    rows: routesCrest16.map((route) {
+                      TextEditingController zonePointsController =
+                          TextEditingController(
+                              text: route["Zone Points"].toString());
+                      TextEditingController topPointsController =
+                          TextEditingController(
+                              text: route["Top Points"].toString());
+
                       Color rowColor = Colors.transparent;
                       if (route["Zone"]) {
                         rowColor = Colors.grey[200]!;
                       }
                       if (route["Top"]) {
                         rowColor = Colors.grey[300]!;
+                      }
+                      if (route["isTop10"]) {
+                        rowColor = Colors.blue[100]!;
                       }
                       double totalPoints = (route["Zone"]
                               ? route["Zone Points"] *
@@ -314,37 +331,76 @@ class _ScoreCardScreenState extends State<ScoreCardScreen> {
                             ),
                           ),
                           DataCell(
-                            Text(
-                              route["Zone Points"].toString(),
-                              style: TextStyle(
-                                fontWeight: route["Zone"]
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                                color:
-                                    route["Zone"] ? Colors.green : Colors.black,
+                            SizedBox(
+                              width: 50,
+                              child: TextField(
+                                controller: zonePointsController,
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.symmetric(
+                                      vertical: 5, horizontal: 10),
+                                ),
+                                onSubmitted: (value) {
+                                  setState(() {
+                                    route["Zone Points"] = double.tryParse(
+                                            zonePointsController.text) ??
+                                        route["Zone Points"];
+                                    _calculateScore();
+                                  });
+                                },
                               ),
                             ),
                           ),
-                          DataCell(Text(route["Zone Weight"].toString())),
+                          DataCell(Text(
+                            route["Zone Weight"].toString(),
+                            style: TextStyle(
+                              color: disableWeight
+                                  ? Colors.blueGrey.shade200
+                                  : Colors.black,
+                            ),
+                          )),
                           DataCell(
-                            Text(
-                              route["Top Points"].toString(),
-                              style: TextStyle(
-                                fontWeight: route["Top"]
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                                color:
-                                    route["Top"] ? Colors.green : Colors.black,
+                            SizedBox(
+                              width: 50,
+                              child: TextField(
+                                controller: topPointsController,
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.symmetric(
+                                      vertical: 2, horizontal: 10),
+                                ),
+                                onSubmitted: (value) {
+                                  setState(() {
+                                    route["Top Points"] = double.tryParse(
+                                            topPointsController.text) ??
+                                        route["Top Points"];
+                                    _calculateScore();
+                                  });
+                                },
                               ),
                             ),
                           ),
-                          DataCell(Text(route["Top Weight"].toString())),
+                          DataCell(Text(
+                            route["Top Weight"].toString(),
+                            style: TextStyle(
+                              color: disableWeight
+                                  ? Colors.blueGrey.shade200
+                                  : Colors.black,
+                            ),
+                          )),
                           DataCell(Text(totalPoints.toStringAsFixed(2),
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: !route["isTop10"]
                                       ? Colors.grey
                                       : Colors.black))),
+                          DataCell(
+                            route["isTop10"]
+                                ? Icon(Icons.check, color: Colors.green)
+                                : SizedBox.shrink(),
+                          ),
                         ],
                       );
                     }).toList(),
@@ -447,24 +503,6 @@ class _ScoreCardScreenState extends State<ScoreCardScreen> {
           ),
         ],
       ),
-    );
-  }
-}
-
-class CrestScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text('Crest Screen'),
-    );
-  }
-}
-
-class SummitScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text('Summit Screen'),
     );
   }
 }
