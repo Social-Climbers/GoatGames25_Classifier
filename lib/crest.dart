@@ -23,13 +23,14 @@ class _CrestScoreCardScreenState extends State<CrestScoreCardScreen> {
     bool climbedAnyIbex = false;
 
     // Reset the top 10 flag for all routes
-    for (var route in routesCrest16) {
+    for (var route in Crest16) {
       route["isTop10"] = false;
     }
 
     // Filter routes where Top is checked
     var topRoutes =
-        routesCrest16.where((route) => route["Top"] == true).toList();
+        Crest16.where((route) => route["Top"] == true || route["Zone"] == true)
+            .toList();
 
     // Sort the routes by route number in descending order
     topRoutes.sort((a, b) {
@@ -71,6 +72,21 @@ class _CrestScoreCardScreenState extends State<CrestScoreCardScreen> {
       if ((isFemale && routeNumber >= 10 && route["Top"]) ||
           (!isFemale && routeNumber >= 13 && route["Top"])) {
         climbedAnyIbex = true;
+      }
+    }
+
+    // If there are less than 10 top routes, add the zone points of the remaining routes
+    if (topRoutes.length < topRoutesRange) {
+      var remainingRoutes = Crest16.where((route) => !route["Top"])
+          .toList()
+          .take(topRoutesRange - topRoutes.length);
+
+      for (var route in remainingRoutes) {
+        if (route["Zone"]) {
+          totalScore +=
+              route["Zone Points"] * (disableWeight ? 1 : route["Zone Weight"]);
+          route["isTop10"] = true; // Mark the zone as part of the top 10
+        }
       }
     }
 
@@ -178,7 +194,7 @@ class _CrestScoreCardScreenState extends State<CrestScoreCardScreen> {
                         ElevatedButton(
                           onPressed: () {
                             setState(() {
-                              for (var route in routesCrest16) {
+                              for (var route in Crest16) {
                                 route["Zone"] = false;
                                 route["Top"] = false;
                                 route["isTop10"] = false;
@@ -230,7 +246,7 @@ class _CrestScoreCardScreenState extends State<CrestScoreCardScreen> {
                           label: Text("Top Routes",
                               style: TextStyle(fontWeight: FontWeight.bold))),
                     ],
-                    rows: routesCrest16.map((route) {
+                    rows: Crest16.map((route) {
                       TextEditingController zonePointsController =
                           TextEditingController(
                               text: route["Zone Points"].toString());

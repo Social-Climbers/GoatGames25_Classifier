@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:goatgames2025classifier/BaseCampScoreCard.dart';
 import 'package:goatgames2025classifier/crest.dart';
 import 'package:goatgames2025classifier/routeData.dart';
 
@@ -12,13 +13,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'GG25 Classifier',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: MainScreen(),
-    );
+        title: 'GG25 Classifier',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+          useMaterial3: true,
+        ),
+        home: CrestScoreCardScreen());
   }
 }
 
@@ -43,7 +43,6 @@ class MainScreen extends StatelessWidget {
           children: [
             ScoreCardScreen(),
             CrestScoreCardScreen(),
-            SummitScreen(),
           ],
         ),
       ),
